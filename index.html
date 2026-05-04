@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADHDタスクロール</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --card: #16161a;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --text: #fffffe;
+    --muted: #72757e;
+    --done: #06d6a0;
+    --border: #2a2a35;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  /* 背景ノイズ */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .progress-info {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* プログレスバー */
+  .progress-bar {
+    width: 100%;
+    max-width: 480px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 32px;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    width: 0%;
+  }
+
+  /* メインカード */
+  .task-area {
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .task-card {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 32px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  .task-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .task-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .task-text {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 40px;
+    word-break: break-all;
+  }
+
+  .task-card.slide-out-left {
+    transform: translateX(-120%) rotate(-5deg);
+    opacity: 0;
+  }
+  .task-card.slide-in-right {
+    animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes slideInRight {
+    from { transform: translateX(60px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* 完了ボタン */
+  .btn-done {
+    width: 100%;
+    padding: 18px;
+    background: var(--accent);
+    color: #0d0d0f;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .btn-done:hover { transform: scale(1.02); }
+  .btn-done:active { transform: scale(0.97); }
+
+  /* スキップボタン */
+  .btn-skip {
+    margin-top: 12px;
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 15px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .btn-skip:hover { color: var(--text); border-color: var(--muted); }
+
+  /* 空状態・完了状態 */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    display: none;
+  }
+  .empty-state.show { display: block; }
+  .empty-icon { font-size: 64px; margin-bottom: 20px; }
+  .empty-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .empty-sub { color: var(--muted); font-size: 15px; }
+
+  /* タスク追加 */
+  .add-area {
+    width: 100%;
+    max-width: 480px;
+    margin-top: 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .add-form {
+    display: flex;
+    gap: 8px;
+  }
+
+  .add-input {
+    flex: 1;
+    padding: 14px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .add-input:focus { border-color: var(--accent); }
+  .add-input::placeholder { color: var(--muted); }
+
+  .add-btn {
+    padding: 14px 20px;
+    background: var(--accent);
+    color: #0d0d0f;
+    border: none;
+    border-radius: 12px;
+    font-size: 22px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: transform 0.15s;
+  }
+  .add-btn:active { transform: scale(0.93); }
+
+  /* タスクリスト（サブ） */
+  .task-list {
+    width: 100%;
+    max-width: 480px;
+    margin-top: 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .task-list-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .task-item.completed {
+    opacity: 0.4;
+    text-decoration: line-through;
+    border-color: var(--done);
+  }
+
+  .task-item-text { flex: 1; }
+
+  .task-delete {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 4px;
+    transition: color 0.2s;
+  }
+  .task-delete:hover { color: var(--accent); }
+
+  /* 完了祝い */
+  .confetti-msg {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--done);
+    color: #0d0d0f;
+    padding: 20px 40px;
+    border-radius: 16px;
+    font-size: 24px;
+    font-weight: 900;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .confetti-msg.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">ADHD タスクロール</span>
+  <span class="progress-info" id="progressInfo">0 / 0</span>
+</header>
+
+<div class="progress-bar">
+  <div class="progress-fill" id="progressFill"></div>
+</div>
+
+<div class="task-area" id="taskArea">
+  <div class="task-card" id="taskCard">
+    <span class="task-number" id="taskNumber">TASK 01</span>
+    <div class="task-text" id="taskText">タスクを追加してください</div>
+    <button class="btn-done" id="btnDone" onclick="completeTask()">✓ 完了！</button>
+    <button class="btn-skip" onclick="skipTask()">→ 後回し</button>
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">🎉</div>
+    <div class="empty-title">全部終わった！</div>
+    <div class="empty-sub">今日もよくやった。休んでいいよ。</div>
+  </div>
+</div>
+
+<div class="add-area">
+  <div class="add-form">
+    <input class="add-input" id="addInput" type="text" placeholder="タスクを入力..." maxlength="50"
+      onkeydown="if(event.key==='Enter') addTask()">
+    <button class="add-btn" onclick="addTask()">+</button>
+  </div>
+</div>
+
+<div class="task-list" id="taskListArea">
+  <div class="task-list-title">待機中のタスク</div>
+  <div id="taskListItems"></div>
+</div>
+
+<div class="confetti-msg" id="confettiMsg">✓ 完了！</div>
+
+<script>
+  // デフォルトタスク
+  let tasks = [
+    { id: 1, text: '水を飲む', done: false },
+    { id: 2, text: '今日の目標を1つ決める', done: false },
+    { id: 3, text: '5分だけ片付ける', done: false },
+  ];
+  let currentIndex = 0;
+  let nextId = 4;
+
+  function render() {
+    const remaining = tasks.filter(t => !t.done);
+    const total = tasks.length;
+    const doneCount = tasks.filter(t => t.done).length;
+
+    document.getElementById('progressInfo').textContent = `${doneCount} / ${total}`;
+    const pct = total === 0 ? 0 : (doneCount / total) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+
+    if (remaining.length === 0) {
+      document.getElementById('taskCard').style.display = 'none';
+      document.getElementById('emptyState').classList.add('show');
+    } else {
+      document.getElementById('taskCard').style.display = 'block';
+      document.getElementById('emptyState').classList.remove('show');
+      if (currentIndex >= remaining.length) currentIndex = 0;
+      const cur = remaining[currentIndex];
+      document.getElementById('taskNumber').textContent = `TASK ${String(currentIndex + 1).padStart(2, '0')}`;
+      document.getElementById('taskText').textContent = cur.text;
+    }
+
+    // サブリスト
+    const listEl = document.getElementById('taskListItems');
+    listEl.innerHTML = '';
+    tasks.forEach(t => {
+      const div = document.createElement('div');
+      div.className = 'task-item' + (t.done ? ' completed' : '');
+      div.innerHTML = `<span class="task-item-text">${t.text}</span>
+        <button class="task-delete" onclick="deleteTask(${t.id})">×</button>`;
+      listEl.appendChild(div);
+    });
+  }
+
+  function completeTask() {
+    const remaining = tasks.filter(t => !t.done);
+    if (remaining.length === 0) return;
+    const cur = remaining[currentIndex];
+
+    // 祝いアニメ
+    const msg = document.getElementById('confettiMsg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 800);
+
+    // カードアニメ
+    const card = document.getElementById('taskCard');
+    card.classList.add('slide-out-left');
+    setTimeout(() => {
+      tasks.find(t => t.id === cur.id).done = true;
+      card.classList.remove('slide-out-left');
+      card.classList.add('slide-in-right');
+      render();
+      setTimeout(() => card.classList.remove('slide-in-right'), 400);
+    }, 300);
+  }
+
+  function skipTask() {
+    const remaining = tasks.filter(t => !t.done);
+    if (remaining.length <= 1) return;
+    const card = document.getElementById('taskCard');
+    card.style.opacity = '0.5';
+    setTimeout(() => {
+      currentIndex = (currentIndex + 1) % remaining.length;
+      card.style.opacity = '1';
+      render();
+    }, 150);
+  }
+
+  function addTask() {
+    const input = document.getElementById('addInput');
+    const text = input.value.trim();
+    if (!text) return;
+    tasks.push({ id: nextId++, text, done: false });
+    input.value = '';
+    render();
+  }
+
+  function deleteTask(id) {
+    tasks = tasks.filter(t => t.id !== id);
+    render();
+  }
+
+  render();
+</script>
+</body>
+</html>
