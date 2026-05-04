@@ -50,6 +50,7 @@ const templates = {
   },
 };
 
+// RawBT専用の暗号（文字サイズ変更など）
 function buildIntentString(label, must, free, footer) {
   const lines = [];
   const total = must.length + free.length;
@@ -91,19 +92,17 @@ function buildPlainPreview(label, must, free, footer) {
   return lines.join("\n");
 }
 
-// 修正ポイント：強制起動をやめ、スマホの「共有メニュー」を呼び出す
+// ★RawBTを直接呼び出す魔法の命令
 function sendViaIntent(printData) {
-  if (navigator.share) {
-    navigator.share({
-      title: '印刷用データ',
-      text: printData
-    }).catch(e => {
-      console.log("共有がキャンセルされたかエラー:", e);
-    });
-  } else {
-    alert("「共有」機能に対応していません。\nテキストをコピーしましたので、印刷アプリを開いて貼り付けてください。");
-    navigator.clipboard.writeText(printData);
-  }
+  const encoded = encodeURIComponent(printData);
+  const intentUrl =
+    `intent:#Intent;` +
+    `action=android.intent.action.SEND;` +
+    `type=text/plain;` +
+    `package=ru.a402d.rawbtprinter;` +
+    `S.android.intent.extra.TEXT=${encoded};` +
+    `end`;
+  window.location.href = intentUrl;
 }
 
 function App() {
@@ -127,7 +126,7 @@ function App() {
 
   const btnLabel = {
     idle:  "🖨️ 印刷する",
-    sent:  "✓ 共有メニューを開きました",
+    sent:  "✓ 送信完了",
     error: "❌ エラー",
   }[status];
 
@@ -185,11 +184,6 @@ function App() {
             background: "#0C0C0C", padding: "14px", borderRadius: 8,
           }}>{preview}</pre>
 
-          <div style={{ display: "flex", gap: 20, fontSize: 11, color: "#444" }}>
-            <span>▶ マスト（太字印刷）</span>
-            <span>・フリー（4字下げ）</span>
-          </div>
-
           <button onClick={handlePrint} style={{
             background: btnColor,
             border: "none", borderRadius: 10, padding: "15px",
@@ -198,12 +192,6 @@ function App() {
           }}>
             {btnLabel}
           </button>
-
-          {status === "sent" && (
-            <div style={{ fontSize: 11, color: "#8F8", background: "#0A2A0A", borderRadius: 8, padding: 12, lineHeight: 1.8 }}>
-              共有メニューから「POS Bluetooth...」を選択して印刷してください。
-            </div>
-          )}
         </div>
       )}
 
