@@ -3,447 +3,218 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ADHDタスクロール</title>
+<title>ADHD TASK ROLL</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap');
-
-  :root {
-    --bg: #0d0d0f;
-    --card: #16161a;
-    --accent: #ff6b35;
-    --accent2: #ffd166;
-    --text: #fffffe;
-    --muted: #72757e;
-    --done: #06d6a0;
-    --border: #2a2a35;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Zen Kaku Gothic New', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    overflow-x: hidden;
-  }
-
-  /* 背景ノイズ */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  header {
-    width: 100%;
-    max-width: 480px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 0;
-    margin-bottom: 8px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .logo {
-    font-family: 'Space Mono', monospace;
-    font-size: 13px;
-    color: var(--accent);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-
-  .progress-info {
-    font-size: 12px;
-    color: var(--muted);
-    font-family: 'Space Mono', monospace;
-  }
-
-  /* プログレスバー */
-  .progress-bar {
-    width: 100%;
-    max-width: 480px;
-    height: 3px;
-    background: var(--border);
-    border-radius: 2px;
-    margin-bottom: 32px;
-    position: relative;
-    z-index: 1;
-    overflow: hidden;
-  }
-
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    border-radius: 2px;
-    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    width: 0%;
-  }
-
-  /* メインカード */
-  .task-area {
-    width: 100%;
-    max-width: 480px;
-    position: relative;
-    z-index: 1;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .task-card {
-    width: 100%;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 40px 32px;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-  }
-
-  .task-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-  }
-
-  .task-number {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--accent);
-    letter-spacing: 3px;
-    margin-bottom: 20px;
-    display: block;
-  }
-
-  .task-text {
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1.4;
-    margin-bottom: 40px;
-    word-break: break-all;
-  }
-
-  .task-card.slide-out-left {
-    transform: translateX(-120%) rotate(-5deg);
-    opacity: 0;
-  }
-  .task-card.slide-in-right {
-    animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  }
-  @keyframes slideInRight {
-    from { transform: translateX(60px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-
-  /* 完了ボタン */
-  .btn-done {
-    width: 100%;
-    padding: 18px;
-    background: var(--accent);
-    color: #0d0d0f;
-    border: none;
-    border-radius: 12px;
-    font-family: 'Zen Kaku Gothic New', sans-serif;
-    font-size: 18px;
-    font-weight: 900;
-    cursor: pointer;
-    transition: transform 0.15s ease, background 0.2s;
-    letter-spacing: 1px;
-  }
-
-  .btn-done:hover { transform: scale(1.02); }
-  .btn-done:active { transform: scale(0.97); }
-
-  /* スキップボタン */
-  .btn-skip {
-    margin-top: 12px;
-    width: 100%;
-    padding: 14px;
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    font-family: 'Zen Kaku Gothic New', sans-serif;
-    font-size: 15px;
-    cursor: pointer;
-    transition: color 0.2s, border-color 0.2s;
-  }
-  .btn-skip:hover { color: var(--text); border-color: var(--muted); }
-
-  /* 空状態・完了状態 */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    display: none;
-  }
-  .empty-state.show { display: block; }
-  .empty-icon { font-size: 64px; margin-bottom: 20px; }
-  .empty-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-  .empty-sub { color: var(--muted); font-size: 15px; }
-
-  /* タスク追加 */
-  .add-area {
-    width: 100%;
-    max-width: 480px;
-    margin-top: 24px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .add-form {
-    display: flex;
-    gap: 8px;
-  }
-
-  .add-input {
-    flex: 1;
-    padding: 14px 16px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    font-family: 'Zen Kaku Gothic New', sans-serif;
-    font-size: 15px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .add-input:focus { border-color: var(--accent); }
-  .add-input::placeholder { color: var(--muted); }
-
-  .add-btn {
-    padding: 14px 20px;
-    background: var(--accent);
-    color: #0d0d0f;
-    border: none;
-    border-radius: 12px;
-    font-size: 22px;
-    cursor: pointer;
-    font-weight: 700;
-    transition: transform 0.15s;
-  }
-  .add-btn:active { transform: scale(0.93); }
-
-  /* タスクリスト（サブ） */
-  .task-list {
-    width: 100%;
-    max-width: 480px;
-    margin-top: 24px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .task-list-title {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 2px;
-    margin-bottom: 12px;
-    text-transform: uppercase;
-  }
-
-  .task-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    margin-bottom: 8px;
-    font-size: 14px;
-    animation: fadeIn 0.3s ease;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .task-item.completed {
-    opacity: 0.4;
-    text-decoration: line-through;
-    border-color: var(--done);
-  }
-
-  .task-item-text { flex: 1; }
-
-  .task-delete {
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 18px;
-    padding: 0 4px;
-    transition: color 0.2s;
-  }
-  .task-delete:hover { color: var(--accent); }
-
-  /* 完了祝い */
-  .confetti-msg {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--done);
-    color: #0d0d0f;
-    padding: 20px 40px;
-    border-radius: 16px;
-    font-size: 24px;
-    font-weight: 900;
-    z-index: 100;
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-  }
-  .confetti-msg.show { opacity: 1; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #161616; }
 </style>
 </head>
 <body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
 
-<header>
-  <span class="logo">ADHD タスクロール</span>
-  <span class="progress-info" id="progressInfo">0 / 0</span>
-</header>
+const templates = {
+  nothing: {
+    label: "なんもしたくない日", emoji: "🌫️", color: "#7B9EA8",
+    must: ["トイレに行く", "顔を洗う", "窓を開ける"],
+    free: ["コーヒーを飲む", "目薬をさす", "スマホを5分置く"],
+    footer: "今日もえらい。",
+  },
+  alittle: {
+    label: "ちょっとがんばる日", emoji: "🌱", color: "#7BAF7B",
+    must: ["トイレに行く", "顔を洗う", "窓を開ける", "洗濯を回す"],
+    free: ["コーヒーを飲む", "目薬をさす", "洗濯物を干す", "掃除機をかける", "ダンベルを持つ"],
+    footer: "1つできたら今日は勝ち。",
+  },
+  study: {
+    label: "資格勉強メイン日", emoji: "📘", color: "#8A7BAF",
+    must: ["トイレに行く", "顔を洗う", "テキストを1ページ開く", "過去問を1問解く"],
+    free: ["コーヒーを飲む", "目薬をさす", "テキストを5分読む", "答え合わせをする"],
+    footer: "1問解いたら今日は合格。",
+  },
+  hobby: {
+    label: "趣味全開日", emoji: "🎮", color: "#AF8A7B",
+    must: ["トイレに行く", "顔を洗う", "窓を開ける", "趣味を1つ選ぶ：___________"],
+    free: ["コーヒーを飲む", "目薬をさす", "趣味その2：___________", "趣味その3：___________"],
+    footer: "全部やらなくていい。1つでも勝ち。",
+  },
+  outing: {
+    label: "外出する日", emoji: "🚪", color: "#AF9E7B",
+    must: ["顔を洗う", "持ち物確認する", "戸締り確認する", "目的地：___________"],
+    free: ["目薬をさす", "窓を開ける", "荷物を置く（帰宅後）", "手を洗う（帰宅後）", "コーヒーを飲む（帰宅後）"],
+    footer: "帰ってきた。それだけで今日は勝ち。",
+  },
+};
 
-<div class="progress-bar">
-  <div class="progress-fill" id="progressFill"></div>
-</div>
+function buildIntentString(label, must, free, footer) {
+  const lines = [];
+  const total = must.length + free.length;
 
-<div class="task-area" id="taskArea">
-  <div class="task-card" id="taskCard">
-    <span class="task-number" id="taskNumber">TASK 01</span>
-    <div class="task-text" id="taskText">タスクを追加してください</div>
-    <button class="btn-done" id="btnDone" onclick="completeTask()">✓ 完了！</button>
-    <button class="btn-skip" onclick="skipTask()">→ 後回し</button>
-  </div>
+  lines.push(`<113>【${label}】`);
+  lines.push(`<100>================================`);
+  lines.push(`<100> `);
 
-  <div class="empty-state" id="emptyState">
-    <div class="empty-icon">🎉</div>
-    <div class="empty-title">全部終わった！</div>
-    <div class="empty-sub">今日もよくやった。休んでいいよ。</div>
-  </div>
-</div>
-
-<div class="add-area">
-  <div class="add-form">
-    <input class="add-input" id="addInput" type="text" placeholder="タスクを入力..." maxlength="50"
-      onkeydown="if(event.key==='Enter') addTask()">
-    <button class="add-btn" onclick="addTask()">+</button>
-  </div>
-</div>
-
-<div class="task-list" id="taskListArea">
-  <div class="task-list-title">待機中のタスク</div>
-  <div id="taskListItems"></div>
-</div>
-
-<div class="confetti-msg" id="confettiMsg">✓ 完了！</div>
-
-<script>
-  // デフォルトタスク
-  let tasks = [
-    { id: 1, text: '水を飲む', done: false },
-    { id: 2, text: '今日の目標を1つ決める', done: false },
-    { id: 3, text: '5分だけ片付ける', done: false },
-  ];
-  let currentIndex = 0;
-  let nextId = 4;
-
-  function render() {
-    const remaining = tasks.filter(t => !t.done);
-    const total = tasks.length;
-    const doneCount = tasks.filter(t => t.done).length;
-
-    document.getElementById('progressInfo').textContent = `${doneCount} / ${total}`;
-    const pct = total === 0 ? 0 : (doneCount / total) * 100;
-    document.getElementById('progressFill').style.width = pct + '%';
-
-    if (remaining.length === 0) {
-      document.getElementById('taskCard').style.display = 'none';
-      document.getElementById('emptyState').classList.add('show');
-    } else {
-      document.getElementById('taskCard').style.display = 'block';
-      document.getElementById('emptyState').classList.remove('show');
-      if (currentIndex >= remaining.length) currentIndex = 0;
-      const cur = remaining[currentIndex];
-      document.getElementById('taskNumber').textContent = `TASK ${String(currentIndex + 1).padStart(2, '0')}`;
-      document.getElementById('taskText').textContent = cur.text;
+  let mi = 0, fi = 0, idx = 1;
+  while (mi < must.length || fi < free.length) {
+    if (mi < must.length) {
+      lines.push(`<110>▶ [${idx}/${total}] ${must[mi]}`);
+      mi++; idx++;
     }
+    if (fi < free.length) {
+      lines.push(`<100>    ・${free[fi]}`);
+      fi++; idx++;
+    }
+  }
 
-    // サブリスト
-    const listEl = document.getElementById('taskListItems');
-    listEl.innerHTML = '';
-    tasks.forEach(t => {
-      const div = document.createElement('div');
-      div.className = 'task-item' + (t.done ? ' completed' : '');
-      div.innerHTML = `<span class="task-item-text">${t.text}</span>
-        <button class="task-delete" onclick="deleteTask(${t.id})">×</button>`;
-      listEl.appendChild(div);
+  lines.push(`<100> `);
+  lines.push(`<100>--------------------------------`);
+  lines.push(`<113>${footer}`);
+  lines.push(`<100> `);
+  lines.push(`<100>バン！でもOK。床置きでもOK。`);
+
+  return lines.join("\n");
+}
+
+function buildPlainPreview(label, must, free, footer) {
+  const lines = [`【${label}】`, "================================", ""];
+  const total = must.length + free.length;
+  let mi = 0, fi = 0, idx = 1;
+  while (mi < must.length || fi < free.length) {
+    if (mi < must.length) { lines.push(`▶ [${idx}/${total}] ${must[mi]}`); mi++; idx++; }
+    if (fi < free.length) { lines.push(`    ・${free[fi]}`); fi++; idx++; }
+  }
+  lines.push("", "--------------------------------", footer, "", "バン！でもOK。床置きでもOK。");
+  return lines.join("\n");
+}
+
+// 修正ポイント：強制起動をやめ、スマホの「共有メニュー」を呼び出す
+function sendViaIntent(printData) {
+  if (navigator.share) {
+    navigator.share({
+      title: '印刷用データ',
+      text: printData
+    }).catch(e => {
+      console.log("共有がキャンセルされたかエラー:", e);
     });
+  } else {
+    alert("「共有」機能に対応していません。\nテキストをコピーしましたので、印刷アプリを開いて貼り付けてください。");
+    navigator.clipboard.writeText(printData);
+  }
+}
+
+function App() {
+  const [selected, setSelected] = useState(null);
+  const [status, setStatus] = useState("idle");
+
+  const tmpl = selected ? templates[selected] : null;
+  const preview = tmpl ? buildPlainPreview(tmpl.label, tmpl.must, tmpl.free, tmpl.footer) : "";
+
+  function handlePrint() {
+    if (!tmpl) return;
+    try {
+      const data = buildIntentString(tmpl.label, tmpl.must, tmpl.free, tmpl.footer);
+      sendViaIntent(data);
+      setStatus("sent");
+      setTimeout(() => setStatus("idle"), 3000);
+    } catch (e) {
+      setStatus("error");
+    }
   }
 
-  function completeTask() {
-    const remaining = tasks.filter(t => !t.done);
-    if (remaining.length === 0) return;
-    const cur = remaining[currentIndex];
+  const btnLabel = {
+    idle:  "🖨️ 印刷する",
+    sent:  "✓ 共有メニューを開きました",
+    error: "❌ エラー",
+  }[status];
 
-    // 祝いアニメ
-    const msg = document.getElementById('confettiMsg');
-    msg.classList.add('show');
-    setTimeout(() => msg.classList.remove('show'), 800);
+  const btnColor = {
+    idle:  tmpl?.color ?? "#666",
+    sent:  "#2A5A2A",
+    error: "#7A2A2A",
+  }[status];
 
-    // カードアニメ
-    const card = document.getElementById('taskCard');
-    card.classList.add('slide-out-left');
-    setTimeout(() => {
-      tasks.find(t => t.id === cur.id).done = true;
-      card.classList.remove('slide-out-left');
-      card.classList.add('slide-in-right');
-      render();
-      setTimeout(() => card.classList.remove('slide-in-right'), 400);
-    }, 300);
-  }
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "#161616",
+      fontFamily: "'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "36px 16px 56px", gap: "22px",
+    }}>
 
-  function skipTask() {
-    const remaining = tasks.filter(t => !t.done);
-    if (remaining.length <= 1) return;
-    const card = document.getElementById('taskCard');
-    card.style.opacity = '0.5';
-    setTimeout(() => {
-      currentIndex = (currentIndex + 1) % remaining.length;
-      card.style.opacity = '1';
-      render();
-    }, 150);
-  }
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 10, color: "#3A3A3A", letterSpacing: 6, marginBottom: 8 }}>ADHD TASK ROLL</div>
+        <div style={{ fontSize: 24, color: "#E0D8CC", fontWeight: 700, letterSpacing: 0.5 }}>今日はどの日？</div>
+      </div>
 
-  function addTask() {
-    const input = document.getElementById('addInput');
-    const text = input.value.trim();
-    if (!text) return;
-    tasks.push({ id: nextId++, text, done: false });
-    input.value = '';
-    render();
-  }
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 360 }}>
+        {Object.entries(templates).map(([key, t]) => (
+          <button key={key} onClick={() => { setSelected(key); setStatus("idle"); }} style={{
+            background: selected === key ? t.color + "22" : "#1E1E1E",
+            border: `2px solid ${selected === key ? t.color : "#2A2A2A"}`,
+            borderRadius: 14, padding: "14px 18px",
+            display: "flex", alignItems: "center", gap: 14,
+            cursor: "pointer", transition: "all 0.15s", textAlign: "left",
+          }}>
+            <span style={{ fontSize: 26 }}>{t.emoji}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: selected === key ? t.color : "#999" }}>{t.label}</div>
+              <div style={{ fontSize: 10, color: "#444", marginTop: 3 }}>
+                ▶×{t.must.length}　・×{t.free.length}　計{t.must.length + t.free.length}項目
+              </div>
+            </div>
+            {selected === key && <span style={{ fontSize: 18, color: t.color }}>✓</span>}
+          </button>
+        ))}
+      </div>
 
-  function deleteTask(id) {
-    tasks = tasks.filter(t => t.id !== id);
-    render();
-  }
+      {tmpl && (
+        <div style={{
+          width: "100%", maxWidth: 360,
+          background: "#111", border: "1px solid #252525",
+          borderRadius: 14, padding: "18px",
+          display: "flex", flexDirection: "column", gap: 14,
+        }}>
+          <pre style={{
+            fontFamily: "'Courier New',monospace", fontSize: 12,
+            color: "#A8A098", lineHeight: 2, whiteSpace: "pre-wrap", margin: 0,
+            background: "#0C0C0C", padding: "14px", borderRadius: 8,
+          }}>{preview}</pre>
 
-  render();
+          <div style={{ display: "flex", gap: 20, fontSize: 11, color: "#444" }}>
+            <span>▶ マスト（太字印刷）</span>
+            <span>・フリー（4字下げ）</span>
+          </div>
+
+          <button onClick={handlePrint} style={{
+            background: btnColor,
+            border: "none", borderRadius: 10, padding: "15px",
+            color: "#fff", fontSize: 14, fontWeight: 700,
+            cursor: "pointer", letterSpacing: 1, transition: "background 0.25s",
+          }}>
+            {btnLabel}
+          </button>
+
+          {status === "sent" && (
+            <div style={{ fontSize: 11, color: "#8F8", background: "#0A2A0A", borderRadius: 8, padding: 12, lineHeight: 1.8 }}>
+              共有メニューから「POS Bluetooth...」を選択して印刷してください。
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ fontSize: 11, color: "#252525", textAlign: "center" }}>
+        できた日も、できなかった日も、瓶の中身は同じ1日。
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>
