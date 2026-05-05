@@ -91,9 +91,13 @@ function buildPlainPreview(label, must, free, footer) {
   return lines.join("\n");
 }
 
-function sendViaRawBT(printData) {
-  const encoded = encodeURIComponent(printData);
-  window.location.href = "rawbt:" + encoded;
+async function sendViaRawBT(printData) {
+  if (navigator.share) {
+    await navigator.share({ text: printData });
+  } else {
+    const encoded = encodeURIComponent(printData);
+    window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encoded};end`;
+  }
 }
 
 function App() {
@@ -103,14 +107,15 @@ function App() {
   const tmpl = selected ? templates[selected] : null;
   const preview = tmpl ? buildPlainPreview(tmpl.label, tmpl.must, tmpl.free, tmpl.footer) : "";
 
-  function handlePrint() {
+  async function handlePrint() {
     if (!tmpl) return;
     try {
       const data = buildIntentString(tmpl.label, tmpl.must, tmpl.free, tmpl.footer);
-      sendViaRawBT(data);
+      await sendViaRawBT(data);
       setStatus("sent");
       setTimeout(() => setStatus("idle"), 3000);
     } catch (e) {
+      if (e.name === "AbortError") return;
       setStatus("error");
     }
   }
