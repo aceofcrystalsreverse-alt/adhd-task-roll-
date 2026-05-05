@@ -75,7 +75,6 @@ function buildIntentString(label, must, free, footer) {
   lines.push(`<113>${footer}`);
   lines.push(`<100> `);
   lines.push(`<100>バン！でもOK。床置きでもOK。`);
-  lines.push(`<cut>`);
 
   return lines.join("\n");
 }
@@ -92,9 +91,9 @@ function buildPlainPreview(label, must, free, footer) {
   return lines.join("\n");
 }
 
-async function sendViaShare(printData) {
-  if (!navigator.share) throw new Error("Web Share API非対応");
-  await navigator.share({ text: printData });
+function sendViaRawBT(printData) {
+  const encoded = encodeURIComponent(printData);
+  window.location.href = "rawbt:" + encoded;
 }
 
 function App() {
@@ -104,23 +103,22 @@ function App() {
   const tmpl = selected ? templates[selected] : null;
   const preview = tmpl ? buildPlainPreview(tmpl.label, tmpl.must, tmpl.free, tmpl.footer) : "";
 
-  async function handlePrint() {
+  function handlePrint() {
     if (!tmpl) return;
     try {
       const data = buildIntentString(tmpl.label, tmpl.must, tmpl.free, tmpl.footer);
-      await sendViaShare(data);
+      sendViaRawBT(data);
       setStatus("sent");
       setTimeout(() => setStatus("idle"), 3000);
     } catch (e) {
-      if (e.name === "AbortError") return;
       setStatus("error");
     }
   }
 
   const btnLabel = {
-    idle:  "🖨️ 共有してRawBTへ送る",
-    sent:  "✓ 共有メニューを開きました",
-    error: "❌ エラー（Web Share API非対応？）",
+    idle:  "🖨️ 印刷する",
+    sent:  "✓ RawBTに送信しました",
+    error: "❌ エラー",
   }[status];
 
   const btnColor = {
@@ -193,8 +191,8 @@ function App() {
 
           {status === "sent" && (
             <div style={{ fontSize: 11, color: "#8F8", background: "#0A2A0A", borderRadius: 8, padding: 12, lineHeight: 1.8 }}>
-              共有メニューからRawBTを選んでください。<br />
-              RawBTが表示されない場合→アプリ一覧の「その他」を確認。
+              RawBTが起動します。<br />
+              「このリンクをRawBTで開く？」と聞かれたら許可してください。
             </div>
           )}
           {status === "error" && (
