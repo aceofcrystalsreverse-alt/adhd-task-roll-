@@ -75,6 +75,7 @@ function buildIntentString(label, must, free, footer) {
   lines.push(`<113>${footer}`);
   lines.push(`<100> `);
   lines.push(`<100>バン！でもOK。床置きでもOK。`);
+  lines.push(`<cut>`);
 
   return lines.join("\n");
 }
