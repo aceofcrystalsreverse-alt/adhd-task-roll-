@@ -50,7 +50,6 @@ const templates = {
   },
 };
 
-// RawBT専用の暗号（文字サイズ変更など）
 function buildIntentString(label, must, free, footer) {
   const lines = [];
   const total = must.length + free.length;
@@ -92,17 +91,9 @@ function buildPlainPreview(label, must, free, footer) {
   return lines.join("\n");
 }
 
-// ★RawBTを直接呼び出す魔法の命令
-function sendViaIntent(printData) {
-  const encoded = encodeURIComponent(printData);
-  const intentUrl =
-    `intent:#Intent;` +
-    `action=android.intent.action.SEND;` +
-    `type=text/plain;` +
-    `package=ru.a402d.rawbtprinter;` +
-    `S.android.intent.extra.TEXT=${encoded};` +
-    `end`;
-  window.location.href = intentUrl;
+async function sendViaShare(printData) {
+  if (!navigator.share) throw new Error("Web Share API非対応");
+  await navigator.share({ text: printData });
 }
 
 function App() {
@@ -112,22 +103,23 @@ function App() {
   const tmpl = selected ? templates[selected] : null;
   const preview = tmpl ? buildPlainPreview(tmpl.label, tmpl.must, tmpl.free, tmpl.footer) : "";
 
-  function handlePrint() {
+  async function handlePrint() {
     if (!tmpl) return;
     try {
       const data = buildIntentString(tmpl.label, tmpl.must, tmpl.free, tmpl.footer);
-      sendViaIntent(data);
+      await sendViaShare(data);
       setStatus("sent");
       setTimeout(() => setStatus("idle"), 3000);
     } catch (e) {
+      if (e.name === "AbortError") return;
       setStatus("error");
     }
   }
 
   const btnLabel = {
-    idle:  "🖨️ 印刷する",
-    sent:  "✓ 送信完了",
-    error: "❌ エラー",
+    idle:  "🖨️ 共有してRawBTへ送る",
+    sent:  "✓ 共有メニューを開きました",
+    error: "❌ エラー（Web Share API非対応？）",
   }[status];
 
   const btnColor = {
@@ -184,6 +176,11 @@ function App() {
             background: "#0C0C0C", padding: "14px", borderRadius: 8,
           }}>{preview}</pre>
 
+          <div style={{ display: "flex", gap: 20, fontSize: 11, color: "#444" }}>
+            <span>▶ マスト（太字印刷）</span>
+            <span>・フリー（4字下げ）</span>
+          </div>
+
           <button onClick={handlePrint} style={{
             background: btnColor,
             border: "none", borderRadius: 10, padding: "15px",
@@ -192,6 +189,19 @@ function App() {
           }}>
             {btnLabel}
           </button>
+
+          {status === "sent" && (
+            <div style={{ fontSize: 11, color: "#8F8", background: "#0A2A0A", borderRadius: 8, padding: 12, lineHeight: 1.8 }}>
+              共有メニューからRawBTを選んでください。<br />
+              RawBTが表示されない場合→アプリ一覧の「その他」を確認。
+            </div>
+          )}
+          {status === "error" && (
+            <div style={{ fontSize: 11, color: "#F88", background: "#2A0A0A", borderRadius: 8, padding: 12, lineHeight: 1.8 }}>
+              Web Share APIエラー。<br />
+              HTTPSページで開いているか確認してください（GitHub Pages はOK）。
+            </div>
+          )}
         </div>
       )}
 
